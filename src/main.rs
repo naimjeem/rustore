@@ -1,4 +1,5 @@
 use std::fs;
+use std::fs::OpenOptions;
 use std::collections::HashMap;
 
 fn main() {
@@ -11,7 +12,7 @@ fn main() {
     // let write_result = fs::write("kv.db", contents).unwrap();
 
     let mut database = Database::new().expect("Database::new() crashed");
-    database.insert(value.clone(), key.to_uppercase());
+    // database.insert(key.to_uppercase(), value.clone());
     database.insert(key, value);
     database.flush().unwrap();
 }
@@ -31,6 +32,11 @@ impl Database {
         //     }
         // };
         
+        OpenOptions::new()
+                    .read(true)
+                    .write(true)
+                    .create(true)
+                    .open("kv.db")?;
         let contents = fs::read_to_string("kv.db")?;
 
         for line in contents.lines() {
