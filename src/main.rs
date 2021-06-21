@@ -1,20 +1,29 @@
 use std::fs;
+use clap::Clap;
 use std::fs::OpenOptions;
 use std::collections::HashMap;
 
 fn main() {
-    let mut arguments = std::env::args().skip(1);
-    let key = arguments.next().unwrap();
-    let value = arguments.next().unwrap();
-    println!("Key '{}', '{}'", key, value);
-
+    let args = Args::parse();
+    // let mut arguments = std::env::args().skip(1);
+    let key = args.key;
+    let value = args.value;
+    println!("Key '{}', '{}', '{}'", key, value, Args::parse().path);
     // let contents = format!("{}\t{}\n", key, value);
     // let write_result = fs::write("kv.db", contents).unwrap();
-
     let mut database = Database::new().expect("Database::new() crashed");
     // database.insert(key.to_uppercase(), value.clone());
     database.insert(key, value);
     database.flush().unwrap();
+}
+
+#[derive(Clap, Debug)]
+#[clap(name = "rustore")]
+struct Args {
+    #[clap(short, long, default_value = "rustore.db")]
+    path: String,
+    key: String,
+    value: String,
 }
 
 struct Database {
@@ -24,20 +33,13 @@ struct Database {
 
 impl Database {
     fn new() -> Result<Database, std::io::Error> {
-        let mut map = HashMap::new();
-        // let contents = match fs::read_to_string("kv.db") {
-        //     Ok(c) => c,
-        //     Err(error) => {
-        //         Err(error);
-        //     }
-        // };
-        
         OpenOptions::new()
                     .read(true)
                     .write(true)
                     .create(true)
-                    .open("kv.db")?;
-        let contents = fs::read_to_string("kv.db")?;
+                    .open(Args::parse().path)?;
+        let mut map = HashMap::new();
+        let contents = fs::read_to_string(Args::parse().path)?;
 
         for line in contents.lines() {
             let mut chunks = line.splitn(2, '\t');
@@ -67,6 +69,7 @@ impl Drop for Database {
 }
 
 fn do_flush (database: &Database) -> std::io::Result<()> {
+    // let args = Args::parse();
     let mut contents = String::new();
     for (key, value) in &database.map {
         // let kvpair = format!("{}\t{}\n", key, value);
@@ -75,5 +78,5 @@ fn do_flush (database: &Database) -> std::io::Result<()> {
         contents.push_str(&&&&value);
         contents.push('\n');
     }
-    fs::write("kv.db", contents)
+    fs::write(Args::parse().path, contents)
 }
